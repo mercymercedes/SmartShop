@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Integration - SmartShop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #2D5016;
+            --cream: #F8F6F0;
+            --accent-orange: #E67E22;
+            --charcoal: #2C3E50;
+            --sage: #95A5A6;
+        }
+        
+        body {
+            background-color: var(--cream);
+            color: var(--charcoal);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .recipe-card {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .recipe-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(45, 80, 22, 0.15);
+        }
+        
+        .ingredient-item {
+            transition: all 0.2s ease;
+        }
+        
+        .ingredient-item:hover {
+            background-color: rgba(45, 80, 22, 0.05);
+        }
+        
+        .cost-breakdown {
+            background: linear-gradient(135deg, var(--primary-green), #3D6B1F);
+            color: white;
+        }
+        
+        .nav-bottom {
+            background: rgba(248, 246, 240, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(45, 80, 22, 0.1);
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item.active {
+            color: var(--primary-green);
+        }
+        
+        .recipe-input {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .meal-card {
+            border-left: 4px solid var(--accent-orange);
+        }
+        
+        .step-number {
+            background: linear-gradient(45deg, var(--accent-orange), #F39C12);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        
+        .savings-badge {
+            background: linear-gradient(45deg, #10B981, #059669);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="pb-20">
+    <!-- Header -->
+    <div class="bg-white shadow-sm py-4 px-4">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-2xl font-bold" style="font-family: 'Playfair Display', serif;">Recipe Integration</h1>
+            <p class="text-sm text-gray-600 mt-1">Convert recipes to shopping lists with cost analysis</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-4 py-6">
+        <!-- Recipe Input -->
+        <div class="recipe-card bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Add Recipe</h2>
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Recipe Name</label>
+                        <input type="text" id="recipe-name" placeholder="e.g., Healthy Chicken Stir Fry" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Servings</label>
+                        <input type="number" id="recipe-servings" placeholder="4" min="1" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ingredients</label>
+                    <textarea id="recipe-ingredients" placeholder="List ingredients with quantities:&#10;• 2 cups brown rice&#10;• 1 lb chicken breast, sliced&#10;• 2 bell peppers, chopped&#10;• 1 cup broccoli florets&#10;• 3 tbsp soy sauce&#10;• 2 tbsp olive oil" 
+                              class="recipe-input w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Instructions (Optional)</label>
+                    <textarea id="recipe-instructions" placeholder="Cooking instructions..." 
+                              class="recipe-input w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <button onclick="parseRecipe()" 
+                            class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-medium">
+                        🔍 Parse Recipe
+                    </button>
+                    <button onclick="clearRecipe()" 
+                            class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parsed Ingredients -->
+        <div id="parsed-results" class="hidden">
+            <div class="recipe-card bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Parsed Ingredients</h2>
+                
+                <div class="space-y-3" id="ingredients-list">
+                    <!-- Parsed ingredients will appear here -->
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-100">
+                    <button onclick="generateShoppingList()" 
+                            class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
+                        📝 Generate Shopping List
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cost Analysis -->
+            <div class="recipe-card bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Cost Analysis</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold mb-3">Estimated Costs</h3>
+                        <div class="space-y-3" id="cost-breakdown">
+                            <!-- Cost breakdown will appear here -->
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold mb-3">Cost per Serving</h3>
+                        <div class="cost-breakdown rounded-lg p-4">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold mb-2" id="cost-per-serving">$0.00</div>
+                                <div class="text-sm opacity-90">Per serving</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="h-48" id="cost-chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Recipes -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Sample Recipes</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="meal-card bg-white rounded-lg p-4 shadow-md cursor-pointer" onclick="loadSampleRecipe('chicken-stir-fry')">
+                    <img src="resources/recipe-ingredients.jpg" alt="Chicken Stir Fry" class="w-full h-32 object-cover rounded-lg mb-3">
+                    <h3 class="font-semibold mb-2">Healthy Chicken Stir Fry</h3>
+                    <p class="text-sm text-gray-600 mb-2">Serves 4 • 30 min</p>
+                    <div class="flex items-center justify-between">
+                        <span class="savings-badge">$3.50/serving</span>
+                        <span class="text-sm text-gray-500">8 ingredients</span>
+                    </div>
+                </div>
+                
+                <div class="meal-card bg-white rounded-lg p-4 shadow-md cursor-pointer" onclick="loadSampleRecipe('quinoa-salad')">
+                    <img src="resources/recipe-meal.jpg" alt="Quinoa Salad" class="w-full h-32 object-cover rounded-lg mb-3">
+                    <h3 class="font-semibold mb-2">Mediterranean Quinoa Salad</h3>
+                    <p class="text-sm text-gray-600 mb-2">Serves 6 • 20 min</p>
+                    <div class="flex items-center justify-between">
+                        <span class="savings-badge">$2.25/serving</span>
+                        <span class="text-sm text-gray-500">10 ingredients</span>
+                    </div>
+                </div>
+                
+                <div class="meal-card bg-white rounded-lg p-4 shadow-md cursor-pointer" onclick="loadSampleRecipe('veggie-pasta')">
+                    <img src="resources/products-pantry.jpg" alt="Veggie Pasta" class="w-full h-32 object-cover rounded-lg mb-3">
+                    <h3 class="font-semibold mb-2">Vegetable Pasta Bake</h3>
+                    <p class="text-sm text-gray-600 mb-2">Serves 8 • 45 min</p>
+                    <div class="flex items-center justify-between">
+                        <span class="savings-badge">$2.75/serving</span>
+                        <span class="text-sm text-gray-500">12 ingredients</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meal Planning -->
+        <div class="recipe-card bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Weekly Meal Planner</h2>
+            
+            <div class="grid grid-cols-7 gap-2 mb-4">
+                <div class="text-center font-semibold text-sm p-2">Mon</div>
+                <div class="text-center font-semibold text-sm p-2">Tue</div>
+                <div class="text-center font-semibold text-sm p-2">Wed</div>
+                <div class="text-center font-semibold text-sm p-2">Thu</div>
+                <div class="text-center font-semibold text-sm p-2">Fri</div>
+                <div class="text-center font-semibold text-sm p-2">Sat</div>
+                <div class="text-center font-semibold text-sm p-2">Sun</div>
+            </div>
+            
+            <div class="grid grid-cols-7 gap-2" id="meal-calendar">
+                <!-- Calendar days will be populated here -->
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">Drag recipes to plan your week</div>
+                    <button onclick="generateWeeklyList()" 
+                            class="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium">
+                        Generate Weekly List
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button onclick="importRecipe()" 
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium">
+                📥 Import Recipe
+            </button>
+            <button onclick="saveRecipe()" 
+                    class="bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium">
+                💾 Save Recipe
+            </button>
+            <button onclick="shareRecipe()" 
+                    class="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium">
+                📤 Share Recipe
+            </button>
+            <button onclick="clearAllRecipes()" 
+                    class="bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-4 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm font-medium">
+                🗑️ Clear All
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="nav-bottom fixed bottom-0 left-0 right-0 px-4 py-3 z-50">
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-around">
+                <a href="index.html" class="nav-item flex flex-col items-center py-2">
+                    <div class="text-xl mb-1">🏠</div>
+                    <span class="text-xs">Compare</span>
+                </a>
+                <a href="shopping-list.html" class="nav-item flex flex-col items-center py-2">
+                    <div class="text-xl mb-1">📝</div>
+                    <span class="text-xs">Lists</span>
+                </a>
+
+                <a href="recipes.html" class="nav-item active flex flex-col items-center py-2">
+                    <div class="text-xl mb-1">👨‍🍳</div>
+                    <span class="text-xs">Recipes</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <script src="main.js"></script>
+    <script>
+        let currentRecipe = null;
+        let parsedIngredients = [];
+        let weeklyMeals = {};
+
+        // Sample recipes
+        const sampleRecipes = {
+            'chicken-stir-fry': {
+                name: 'Healthy Chicken Stir Fry',
+                servings: 4,
+                ingredients: [
+                    { name: 'Brown Rice', quantity: 2, unit: 'cups' },
+                    { name: 'Chicken Breast', quantity: 1, unit: 'lb' },
+                    { name: 'Bell Peppers', quantity: 2, unit: 'pieces' },
+                    { name: 'Broccoli Florets', quantity: 1, unit: 'cup' },
+                    { name: 'Soy Sauce', quantity: 3, unit: 'tbsp' },
+                    { name: 'Olive Oil', quantity: 2, unit: 'tbsp' },
+                    { name: 'Garlic', quantity: 3, unit: 'cloves' },
+                    { name: 'Ginger', quantity: 1, unit: 'tbsp' }
+                ],
+                instructions: 'Cook rice. Stir fry chicken, then vegetables. Combine with sauce.',
+                prepTime: 30
+            },
+            'quinoa-salad': {
+                name: 'Mediterranean Quinoa Salad',
+                servings: 6,
+                ingredients: [
+                    { name: 'Quinoa', quantity: 2, unit: 'cups' },
+                    { name: 'Cucumber', quantity: 1, unit: 'piece' },
+                    { name: 'Tomatoes', quantity: 2, unit: 'pieces' },
+                    { name: 'Red Onion', quantity: 0.5, unit: 'piece' },
+                    { name: 'Feta Cheese', quantity: 4, unit: 'oz' },
+                    { name: 'Olive Oil', quantity: 0.25, unit: 'cup' },
+                    { name: 'Lemon Juice', quantity: 3, unit: 'tbsp' },
+                    { name: 'Fresh Herbs', quantity: 0.25, unit: 'cup' },
+                    { name: 'Olives', quantity: 0.5, unit: 'cup' },
+                    { name: 'Salt', quantity: 1, unit: 'tsp' }
+                ],
+                instructions: 'Cook quinoa. Chop vegetables. Mix everything together.',
+                prepTime: 20
+            },
+            'veggie-pasta': {
+                name: 'Vegetable Pasta Bake',
+                servings: 8,
+                ingredients: [
+                    { name: 'Pasta', quantity: 1, unit: 'lb' },
+                    { name: 'Zucchini', quantity: 2, unit: 'pieces' },
+                    { name: 'Bell Peppers', quantity: 2, unit: 'pieces' },
+                    { name: 'Mushrooms', quantity: 8, unit: 'oz' },
+                    { name: 'Marinara Sauce', quantity: 24, unit: 'oz' },
+                    { name: 'Mozzarella Cheese', quantity: 2, unit: 'cups' },
+                    { name: 'Parmesan Cheese', quantity: 0.5, unit: 'cup' },
+                    { name: 'Olive Oil', quantity: 2, unit: 'tbsp' },
+                    { name: 'Garlic', quantity: 3, unit: 'cloves' },
+                    { name: 'Italian Herbs', quantity: 2, unit: 'tsp' },
+                    { name: 'Salt', quantity: 1, unit: 'tsp' },
+                    { name: 'Black Pepper', quantity: 0.5, unit: 'tsp' }
+                ],
+                instructions: 'Cook pasta. Sauté vegetables. Combine with sauce. Bake with cheese.',
+                prepTime: 45
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMealCalendar();
+        });
+
+        function parseRecipe() {
+            const recipeName = document.getElementById('recipe-name').value.trim();
+            const servings = parseInt(document.getElementById('recipe-servings').value) || 4;
+            const ingredientsText = document.getElementById('recipe-ingredients').value.trim();
+            const instructions = document.getElementById('recipe-instructions').value.trim();
+
+            if (!recipeName || !ingredientsText) {
+                showNotification('Please enter recipe name and ingredients', 'error');
+                return;
+            }
+
+            // Parse ingredients
+            parsedIngredients = parseIngredientsFromText(ingredientsText);
+            
+            if (parsedIngredients.length === 0) {
+                showNotification('No ingredients found. Please check format.', 'error');
+                return;
+            }
+
+            currentRecipe = {
+                name: recipeName,
+                servings: servings,
+                ingredients: parsedIngredients,
+                instructions: instructions,
+                prepTime: 30
+            };
+
+            displayParsedIngredients();
+            calculateCostAnalysis();
+            
+            document.getElementById('parsed-results').classList.remove('hidden');
+            showNotification('Recipe parsed successfully!', 'success');
+        }
+
+        function parseIngredientsFromText(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            const ingredients = [];
+            
+            lines.forEach(line => {
+                // Try to match quantity, unit, and name
+                const match = line.match(/^(?:[•\-*]\s*)?(\d+(?:\.\d+)?)\s*(\w+(?:\s+\w+)?)?\s*(.+)$/);
+                if (match) {
+                    const [, quantity, unit, name] = match;
+                    ingredients.push({
+                        name: name.trim(),
+                        quantity: parseFloat(quantity),
+                        unit: unit ? unit.trim() : 'piece',
+                        estimatedPrice: Math.random() * 5 + 1 // Random price for demo
+                    });
+                }
+            });
+            
+            return ingredients;
+        }
+
+        function displayParsedIngredients() {
+            const container = document.getElementById('ingredients-list');
+            
+            container.innerHTML = parsedIngredients.map((ingredient, index) => `
+                <div class="ingredient-item flex items-center justify-between p-3 rounded-lg border border-gray-200">
+                    <div class="flex items-center">
+                        <div class="step-number">${index + 1}</div>
+                        <div>
+                            <div class="font-medium">${ingredient.name}</div>
+                            <div class="text-sm text-gray-600">${ingredient.quantity} ${ingredient.unit}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold text-green-600">$${ingredient.estimatedPrice.toFixed(2)}</div>
+                        <div class="text-xs text-gray-500">est. price</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function calculateCostAnalysis() {
+            const totalCost = parsedIngredients.reduce((sum, ing) => sum + ing.estimatedPrice, 0);
+            const costPerServing = totalCost / currentRecipe.servings;
+            
+            // Update cost breakdown
+            const breakdownContainer = document.getElementById('cost-breakdown');
+            breakdownContainer.innerHTML = parsedIngredients.map(ingredient => `
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span class="text-sm">${ingredient.name}</span>
+                    <span class="font-medium">$${ingredient.estimatedPrice.toFixed(2)}</span>
+                </div>
+            `).join('') + `
+                <div class="flex items-center justify-between p-2 bg-green-50 rounded border-t-2 border-green-200 mt-2">
+                    <span class="font-semibold">Total Cost</span>
+                    <span class="font-bold text-green-600">$${totalCost.toFixed(2)}</span>
+                </div>
+            `;
+            
+            // Update cost per serving
+            document.getElementById('cost-per-serving').textContent = `$${costPerServing.toFixed(2)}`;
+            
+            // Create cost chart
+            createCostChart();
+        }
+
+        function createCostChart() {
+            const chartDom = document.getElementById('cost-chart');
+            const myChart = echarts.init(chartDom);
+            
+            const data = parsedIngredients.map(ingredient => ({
+                value: ingredient.estimatedPrice,
+                name: ingredient.name
+            }));
+            
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b}: ${c} ({d}%)'
+                },
+                series: [
+                    {
+                        name: 'Ingredient Cost',
+                        type: 'pie',
+                        radius: '60%',
+                        data: data,
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        },
+                        itemStyle: {
+                            color: function(params) {
+                                const colors = ['#2D5016', '#E67E22', '#95A5A6', '#3498DB', '#9B59B6', '#E74C3C'];
+                                return colors[params.dataIndex % colors.length];
+                            }
+                        }
+                    }
+                ]
+            };
+            
+            myChart.setOption(option);
+        }
+
+        function generateShoppingList() {
+            if (!currentRecipe) {
+                showNotification('No recipe to generate list from', 'error');
+                return;
+            }
+            
+            // Create shopping list from parsed ingredients
+            const shoppingList = {
+                id: Date.now().toString(),
+                name: `${currentRecipe.name} - Shopping List`,
+                items: parsedIngredients.map(ingredient => ({
+                    id: Date.now().toString() + Math.random(),
+                    name: ingredient.name,
+                    size: `${ingredient.quantity} ${ingredient.unit}`,
+                    quantity: Math.ceil(ingredient.quantity),
+                    store: 'walmart', // Default store
+                    price: ingredient.estimatedPrice,
+                    completed: false
+                })),
+                created: new Date().toISOString().split('T')[0]
+            };
+            
+            // Save to localStorage (in a real app, this would sync with the shopping list page)
+            const savedLists = JSON.parse(localStorage.getItem('shopping-lists') || '[]');
+            savedLists.push(shoppingList);
+            localStorage.setItem('shopping-lists', JSON.stringify(savedLists));
+            
+            showNotification('Shopping list generated and saved!', 'success');
+        }
+
+        function loadSampleRecipe(recipeId) {
+            const recipe = sampleRecipes[recipeId];
+            if (!recipe) return;
+            
+            document.getElementById('recipe-name').value = recipe.name;
+            document.getElementById('recipe-servings').value = recipe.servings;
+            document.getElementById('recipe-instructions').value = recipe.instructions;
+            
+            // Format ingredients
+            const ingredientsText = recipe.ingredients.map(ing => 
+                `• ${ing.quantity} ${ing.unit} ${ing.name}`
+            ).join('\n');
+            document.getElementById('recipe-ingredients').value = ingredientsText;
+            
+            showNotification(`${recipe.name} loaded!`, 'success');
+        }
+
+        function initializeMealCalendar() {
+            const calendar = document.getElementById('meal-calendar');
+            const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+            
+            calendar.innerHTML = days.map(day => `
+                <div class="meal-day border border-gray-200 rounded-lg p-2 min-h-24 cursor-pointer hover:bg-gray-50" 
+                     data-day="${day}" onclick="planMeal('${day}')">
+                    <div class="text-xs text-gray-500 mb-1 capitalize">${day}</div>
+                    <div class="meal-slot text-xs text-gray-400">
+                        ${weeklyMeals[day] ? weeklyMeals[day].name : 'Click to add meal'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function planMeal(day) {
+            if (!currentRecipe) {
+                showNotification('Parse a recipe first to add to meal plan', 'error');
+                return;
+            }
+            
+            weeklyMeals[day] = currentRecipe;
+            initializeMealCalendar();
+            showNotification(`${currentRecipe.name} added to ${day}!`, 'success');
+        }
+
+        function generateWeeklyList() {
+            const mealCount = Object.keys(weeklyMeals).length;
+            if (mealCount === 0) {
+                showNotification('Add meals to your weekly plan first', 'error');
+                return;
+            }
+            
+            // Combine all ingredients from weekly meals
+            const allIngredients = {};
+            
+            Object.values(weeklyMeals).forEach(recipe => {
+                recipe.ingredients.forEach(ingredient => {
+                    const key = ingredient.name.toLowerCase();
+                    if (allIngredients[key]) {
+                        allIngredients[key].quantity += ingredient.quantity;
+                    } else {
+                        allIngredients[key] = { ...ingredient };
+                    }
+                });
+            });
+            
+            // Create weekly shopping list
+            const weeklyList = {
+                id: 'weekly-' + Date.now().toString(),
+                name: 'Weekly Meal Plan Shopping List',
+                items: Object.values(allIngredients).map(ingredient => ({
+                    id: Date.now().toString() + Math.random(),
+                    name: ingredient.name,
+                    size: `${ingredient.quantity} ${ingredient.unit}`,
+                    quantity: Math.ceil(ingredient.quantity),
+                    store: 'walmart',
+                    price: ingredient.estimatedPrice,
+                    completed: false
+                })),
+                created: new Date().toISOString().split('T')[0]
+            };
+            
+            // Save to localStorage
+            const savedLists = JSON.parse(localStorage.getItem('shopping-lists') || '[]');
+            savedLists.push(weeklyList);
+            localStorage.setItem('shopping-lists', JSON.stringify(savedLists));
+            
+            showNotification(`Weekly shopping list generated with ${weeklyList.items.length} items!`, 'success');
+        }
+
+        function importRecipe() {
+            showNotification('Recipe import feature coming soon!', 'info');
+        }
+
+        function saveRecipe() {
+            if (!currentRecipe) {
+                showNotification('No recipe to save', 'error');
+                return;
+            }
+            
+            const savedRecipes = JSON.parse(localStorage.getItem('saved-recipes') || '[]');
+            savedRecipes.push({
+                ...currentRecipe,
+                savedDate: new Date().toISOString()
+            });
+            localStorage.setItem('saved-recipes', JSON.stringify(savedRecipes));
+            
+            showNotification('Recipe saved!', 'success');
+        }
+
+        function shareRecipe() {
+            if (!currentRecipe) {
+                showNotification('No recipe to share', 'error');
+                return;
+            }
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: currentRecipe.name,
+                    text: `Check out this recipe: ${currentRecipe.name} - ${currentRecipe.ingredients.length} ingredients`,
+                    url: window.location.href
+                });
+            } else {
+                const text = `${currentRecipe.name}\n${currentRecipe.ingredients.length} ingredients\nServes ${currentRecipe.servings}`;
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification('Recipe copied to clipboard!', 'success');
+                });
+            }
+        }
+
+        function clearRecipe() {
+            document.getElementById('recipe-name').value = '';
+            document.getElementById('recipe-servings').value = '';
+            document.getElementById('recipe-ingredients').value = '';
+            document.getElementById('recipe-instructions').value = '';
+            document.getElementById('parsed-results').classList.add('hidden');
+            currentRecipe = null;
+            parsedIngredients = [];
+            showNotification('Recipe cleared', 'info');
+        }
+
+        function clearAllRecipes() {
+            if (confirm('Are you sure you want to clear everything?')) {
+                clearRecipe();
+                weeklyMeals = {};
+                initializeMealCalendar();
+                localStorage.removeItem('saved-recipes');
+                localStorage.removeItem('shopping-lists');
+                showNotification('All recipes and lists cleared', 'info');
+            }
+        }
+
+        // Utility function for notifications
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500',
+                warning: 'bg-yellow-500'
+            };
+            
+            notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

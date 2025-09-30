@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Shopping Lists - SmartShop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #2D5016;
+            --cream: #F8F6F0;
+            --accent-orange: #E67E22;
+            --charcoal: #2C3E50;
+            --sage: #95A5A6;
+        }
+        
+        body {
+            background-color: var(--cream);
+            color: var(--charcoal);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .list-card {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .list-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(45, 80, 22, 0.15);
+        }
+        
+        .item-completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+        
+        .nav-bottom {
+            background: rgba(248, 246, 240, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(45, 80, 22, 0.1);
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item.active {
+            color: var(--primary-green);
+        }
+        
+        .route-map {
+            height: 200px;
+            background: linear-gradient(135deg, #e0f2e0, #f0f8f0);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--sage);
+        }
+        
+        .savings-highlight {
+            background: linear-gradient(45deg, var(--accent-orange), #F39C12);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="pb-20">
+    <!-- Header -->
+    <div class="bg-white shadow-sm py-4 px-4">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-2xl font-bold" style="font-family: 'Playfair Display', serif;">Smart Shopping Lists</h1>
+            <p class="text-sm text-gray-600 mt-1">Create optimized shopping lists and save more</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-4 py-6">
+        <!-- Current Grocery List Section -->
+        <div class="list-card bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Current Grocery List</h2>
+            
+            <div id="current-list" class="space-y-3">
+                <!-- Current list items will be loaded here -->
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <span id="current-list-count">0</span> items in current list
+                    </div>
+                    <div class="text-lg font-bold text-green-600">
+                        Total: €<span id="current-list-total">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Custom List -->
+        <div class="list-card bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Create Custom List</h2>
+            
+            <div class="space-y-4">
+                <div class="flex gap-4">
+                    <input type="text" id="custom-list-name" placeholder="List name (e.g., Weekly Shopping)" 
+                           class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <button onclick="createCustomList()" 
+                            class="bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-medium">
+                        Create List
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Shopping Lists -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4" style="font-family: 'Playfair Display', serif;">Your Shopping Lists</h2>
+            <div id="shopping-lists" class="space-y-4">
+                <!-- Lists will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button onclick="shareList()" 
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm font-medium">
+                📤 Share
+            </button>
+            <button onclick="exportList()" 
+                    class="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm font-medium">
+                📋 Export
+            </button>
+            <button onclick="clearCurrentList()" 
+                    class="bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-4 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm font-medium">
+                🗑️ Clear Current
+            </button>
+            <button onclick="addItemToCurrentList()" 
+                    class="bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium">
+                + Add Item
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="nav-bottom fixed bottom-0 left-0 right-0 px-4 py-3 z-50">
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-around">
+                <a href="index.html" class="nav-item flex flex-col items-center py-2">
+                    <div class="text-xl mb-1">🏠</div>
+                    <span class="text-xs">Compare</span>
+                </a>
+                <a href="shopping-list.html" class="nav-item active flex flex-col items-center py-2">
+                    <div class="text-xl mb-1">📝</div>
+                    <span class="text-xs">Lists</span>
+                </a>
+                <a href="recipes.html" class="nav-item flex flex-col items-center py-2">
+                    <div class="text-xl mb-1">👨‍🍳</div>
+                    <span class="text-xs">Recipes</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <script src="main.js"></script>
+    <script>
+        let shoppingLists = [];
+        let currentList = [];
+
+        // Sample shopping lists
+        const sampleLists = [
+            {
+                id: '1',
+                name: 'Weekly Groceries',
+                items: [
+                    { id: '1', name: 'Milch 1L', size: '1 unit', quantity: 2, store: 'hofer', price: 0.89, completed: false },
+                    { id: '2', name: 'Brot 500g', size: '1 unit', quantity: 1, store: 'lidl', price: 1.29, completed: false },
+                    { id: '3', name: 'Eier 10 Stück', size: '1 unit', quantity: 1, store: 'hofer', price: 1.99, completed: true },
+                    { id: '4', name: 'Bananen (kg)', size: '1 unit', quantity: 1, store: 'lidl', price: 1.29, completed: false }
+                ],
+                created: '2025-09-30'
+            },
+            {
+                id: '2',
+                name: 'Healthy Snacks',
+                items: [
+                    { id: '5', name: 'Joghurt 500g', size: '1 unit', quantity: 1, store: 'billa', price: 2.49, completed: false },
+                    { id: '6', name: 'Äpfel (kg)', size: '1 unit', quantity: 1, store: 'spar', price: 1.79, completed: false }
+                ],
+                created: '2025-09-29'
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSampleLists();
+            loadCurrentList();
+            renderShoppingLists();
+            renderCurrentList();
+        });
+
+        function loadSampleLists() {
+            shoppingLists = [...sampleLists];
+        }
+
+        function loadCurrentList() {
+            // Load current list from localStorage (populated from compare page)
+            currentList = JSON.parse(localStorage.getItem('current-shopping-list') || '[]');
+        }
+
+        function renderCurrentList() {
+            const container = document.getElementById('current-list');
+            const countEl = document.getElementById('current-list-count');
+            const totalEl = document.getElementById('current-list-total');
+            
+            if (currentList.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-2">📝</div>
+                        <div>Your current list is empty</div>
+                        <div class="text-sm mt-1">Add products from the Compare page</div>
+                    </div>
+                `;
+                countEl.textContent = '0';
+                totalEl.textContent = '0.00';
+                return;
+            }
+            
+            const total = currentList.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            container.innerHTML = currentList.map(item => `
+                <div class="flex items-center justify-between p-3 rounded-lg ${item.completed ? 'bg-gray-50 item-completed' : 'bg-blue-50'}">
+                    <div class="flex items-center">
+                        <input type="checkbox" ${item.completed ? 'checked' : ''} 
+                               onchange="toggleCurrentItem('${item.id}')"
+                               class="mr-3 w-4 h-4 text-green-600 rounded focus:ring-green-500">
+                        <div>
+                            <div class="font-medium">${item.productName}</div>
+                            <div class="text-sm text-gray-600">${item.size} × ${item.quantity}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold">€${(item.price * item.quantity).toFixed(2)}</div>
+                        <div class="text-xs text-gray-500">${appState.storeNames[item.store] || item.store}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            countEl.textContent = currentList.length;
+            totalEl.textContent = total.toFixed(2);
+        }
+
+        function toggleCurrentItem(itemId) {
+            const item = currentList.find(i => i.id === itemId);
+            if (item) {
+                item.completed = !item.completed;
+                localStorage.setItem('current-shopping-list', JSON.stringify(currentList));
+                renderCurrentList();
+            }
+        }
+
+        function renderShoppingLists() {
+            const container = document.getElementById('shopping-lists');
+            container.innerHTML = '';
+
+            shoppingLists.forEach(list => {
+                const listCard = createListCard(list);
+                container.appendChild(listCard);
+            });
+        }
+
+        function createListCard(list) {
+            const card = document.createElement('div');
+            card.className = 'list-card bg-white rounded-xl shadow-lg p-6 border border-gray-100';
+
+            const completedCount = list.items.filter(item => item.completed).length;
+            const totalCost = list.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">${list.name}</h3>
+                        <p class="text-sm text-gray-600">${completedCount}/${list.items.length} items completed</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-green-600">€${totalCost.toFixed(2)}</div>
+                        <div class="text-xs text-gray-500">Total cost</div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 mb-4">
+                    ${list.items.map(item => `
+                        <div class="flex items-center justify-between p-3 rounded-lg ${item.completed ? 'bg-gray-50 item-completed' : 'bg-blue-50'}">
+                            <div class="flex items-center">
+                                <input type="checkbox" ${item.completed ? 'checked' : ''} 
+                                       onchange="toggleItem('${list.id}', '${item.id}')"
+                                       class="mr-3 w-4 h-4 text-green-600 rounded focus:ring-green-500">
+                                <div>
+                                    <div class="font-medium">${item.name}</div>
+                                    <div class="text-sm text-gray-600">${item.size} × ${item.quantity}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold">€${(item.price * item.quantity).toFixed(2)}</div>
+                                <div class="text-xs text-gray-500">${appState.storeNames[item.store] || item.store}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div class="text-sm text-gray-600">
+                        Created ${new Date(list.created).toLocaleDateString()}
+                    </div>
+                    <div class="space-x-2">
+                        <button onclick="deleteList('${list.id}')" 
+                                class="text-red-500 hover:text-red-700 text-sm font-medium">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function createCustomList() {
+            const listName = document.getElementById('custom-list-name').value.trim();
+            if (!listName) {
+                showNotification('Please enter a list name', 'error');
+                return;
+            }
+
+            const newList = {
+                id: Date.now().toString(),
+                name: listName,
+                items: [],
+                created: new Date().toISOString().split('T')[0]
+            };
+
+            shoppingLists.push(newList);
+            document.getElementById('custom-list-name').value = '';
+            
+            renderShoppingLists();
+            showNotification('Shopping list created!', 'success');
+        }
+
+        function addItemToCurrentList() {
+            const itemName = prompt('Enter item name:');
+            if (!itemName) return;
+
+            const newItem = {
+                id: Date.now().toString(),
+                productName: itemName,
+                size: '1 unit',
+                quantity: 1,
+                store: 'billa',
+                price: 1.99,
+                completed: false
+            };
+
+            currentList.push(newItem);
+            localStorage.setItem('current-shopping-list', JSON.stringify(currentList));
+            renderCurrentList();
+            showNotification('Item added to current list!', 'success');
+        }
+
+        function toggleItem(listId, itemId) {
+            const list = shoppingLists.find(l => l.id === listId);
+            const item = list.items.find(i => i.id === itemId);
+            item.completed = !item.completed;
+            renderShoppingLists();
+        }
+
+        function deleteList(listId) {
+            if (confirm('Are you sure you want to delete this list?')) {
+                shoppingLists = shoppingLists.filter(l => l.id !== listId);
+                renderShoppingLists();
+                showNotification('List deleted', 'info');
+            }
+        }
+
+        function clearCurrentList() {
+            if (confirm('Are you sure you want to clear the current list?')) {
+                currentList = [];
+                localStorage.setItem('current-shopping-list', JSON.stringify(currentList));
+                renderCurrentList();
+                showNotification('Current list cleared', 'info');
+            }
+        }
+
+        function shareList() {
+            showNotification('Share functionality coming soon!', 'info');
+        }
+
+        function exportList() {
+            if (currentList.length === 0 && shoppingLists.length === 0) {
+                showNotification('No lists to export', 'error');
+                return;
+            }
+
+            const listData = {
+                currentList: currentList,
+                shoppingLists: shoppingLists,
+                exportDate: new Date().toISOString(),
+                totalItems: currentList.length + shoppingLists.reduce((total, list) => total + list.items.length, 0)
+            };
+
+            const blob = new Blob([JSON.stringify(listData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vienna-shopping-lists-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Shopping lists exported!', 'success');
+        }
+
+        // Utility function for notifications
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500',
+                warning: 'bg-yellow-500'
+            };
+            
+            notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
